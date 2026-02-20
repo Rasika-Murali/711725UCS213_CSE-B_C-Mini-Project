@@ -32,7 +32,7 @@ int main(int argc, char *argv[])
     }
 
     // enable user to specify action
-    while ((choice = enterChoice()) != 5)
+    while ((choice = enterChoice()) != 6)
     {
         switch (choice)
         {
@@ -108,7 +108,12 @@ void updateRecord(FILE *fPtr)
     // obtain number of account to update
     printf("%s", "Enter account to update ( 1 - 100 ): ");
     scanf("%d", &account);
-
+    //adding validity
+    if (account < 1 || account > 100)
+{
+    printf("Invalid account number.\n");
+    return;
+}
     // move file pointer to correct record in file
     fseek(fPtr, (account - 1) * sizeof(struct clientData), SEEK_SET);
     // read record from file
@@ -121,7 +126,6 @@ void updateRecord(FILE *fPtr)
     else
     { // update record
         printf("%-6d%-16s%-11s%10.2f\n\n", client.acctNum, client.lastName, client.firstName, client.balance);
-
         // request transaction amount from user
         printf("%s", "Enter charge ( + ) or payment ( - ): ");
         scanf("%lf", &transaction);
@@ -131,7 +135,7 @@ void updateRecord(FILE *fPtr)
 
         // move file pointer to correct record in file
         // move back by 1 record length
-        fseek(fPtr, -sizeof(struct clientData), SEEK_CUR);
+        fseek(fPtr, - (long) sizeof(struct clientData), SEEK_CUR);
         // write updated record over old record in file
         fwrite(&client, sizeof(struct clientData), 1, fPtr);
     } // end else
@@ -147,7 +151,12 @@ void deleteRecord(FILE *fPtr)
     // obtain number of account to delete
     printf("%s", "Enter account number to delete ( 1 - 100 ): ");
     scanf("%d", &accountNum);
-
+    //adding validity
+    if (accountNum < 1 || accountNum > 100)
+{
+    printf("Invalid account number.\n");
+    return;
+}
     // move file pointer to correct record in file
     fseek(fPtr, (accountNum - 1) * sizeof(struct clientData), SEEK_SET);
     // read record from file
@@ -176,6 +185,12 @@ void newRecord(FILE *fPtr)
     // obtain number of account to create
     printf("%s", "Enter new account number ( 1 - 100 ): ");
     scanf("%d", &accountNum);
+    //adding validity
+    if (accountNum < 1 || accountNum > 100)
+{
+    printf("Invalid account number.\n");
+    return;
+}
 
     // move file pointer to correct record in file
     fseek(fPtr, (accountNum - 1) * sizeof(struct clientData), SEEK_SET);
@@ -211,7 +226,8 @@ unsigned int enterChoice(void)
                  "2 - update an account\n"
                  "3 - add a new account\n"
                  "4 - delete an account\n"
-                 "5 - end program\n? ");
+                 "5 - display all accounts\n"
+                 "6 - end program\n? ");
 
     scanf("%u", &menuChoice); // receive choice from user
     return menuChoice;
