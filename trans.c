@@ -18,6 +18,8 @@ void textFile(FILE *readPtr);
 void updateRecord(FILE *fPtr);
 void newRecord(FILE *fPtr);
 void deleteRecord(FILE *fPtr);
+void displayRecord(FILE *fptr);
+void SearchAccount(FILE *fPtr);
 
 int main(int argc, char *argv[])
 {
@@ -32,7 +34,7 @@ int main(int argc, char *argv[])
     }
 
     // enable user to specify action
-    while ((choice = enterChoice()) != 6)
+    while ((choice = enterChoice()) != 7)
     {
         switch (choice)
         {
@@ -51,6 +53,14 @@ int main(int argc, char *argv[])
         // delete existing record
         case 4:
             deleteRecord(cfPtr);
+            break;
+        // display all records
+        case 5:
+            displayRecord(cfPtr);
+            break;
+        // search for a specific account
+        case 6:
+            SearchAccount(cfPtr);
             break;
         // display if user does not select valid choice
         default:
@@ -191,7 +201,6 @@ void newRecord(FILE *fPtr)
     printf("Invalid account number.\n");
     return;
 }
-
     // move file pointer to correct record in file
     fseek(fPtr, (accountNum - 1) * sizeof(struct clientData), SEEK_SET);
     // read record from file
@@ -214,7 +223,58 @@ void newRecord(FILE *fPtr)
         fwrite(&client, sizeof(struct clientData), 1, fPtr);
     } // end else
 } // end function newRecord
+// display all records
+void displayRecord(FILE *fPtr)
+{
+    struct clientData client = {0,"","",0.0};
 
+    rewind(fPtr); // move to beginning of file
+
+    printf("%-6s%-15s%-10s%10s\n","Acct","Last Name","First Name","Balance");
+
+    while(fread(&client,sizeof(struct clientData),1,fPtr))
+    {
+        if(client.acctNum != 0)
+        {
+            printf("%-6d%-15s%-10s%10.2f\n",
+                   client.acctNum,
+                   client.lastName,
+                   client.firstName,
+                   client.balance);
+        }
+    }
+}
+// search for a specific account
+void SearchAccount(FILE *fPtr)
+{
+    struct clientData client = {0,"","",0.0};
+    unsigned int account;
+
+    printf("Enter account number to search (1-100): ");
+    scanf("%u",&account);
+
+    if(account < 1 || account > 100)
+    {
+        printf("Invalid account number.\n");
+        return;
+    }
+
+    fseek(fPtr,(account-1)*sizeof(struct clientData),SEEK_SET);
+    fread(&client,sizeof(struct clientData),1,fPtr);
+
+    if(client.acctNum == 0)
+    {
+        printf("Account not found.\n");
+    }
+    else
+    {
+        printf("\nAccount Details\n");
+        printf("Account Number : %d\n",client.acctNum);
+        printf("Last Name      : %s\n",client.lastName);
+        printf("First Name     : %s\n",client.firstName);
+        printf("Balance        : %.2f\n",client.balance);
+    }
+}
 // enable user to input menu choice
 unsigned int enterChoice(void)
 {
@@ -227,7 +287,8 @@ unsigned int enterChoice(void)
                  "3 - add a new account\n"
                  "4 - delete an account\n"
                  "5 - display all accounts\n"
-                 "6 - end program\n? ");
+                 "6 - search for an account\n"
+                 "7 - end program\n? ");
 
     scanf("%u", &menuChoice); // receive choice from user
     return menuChoice;
