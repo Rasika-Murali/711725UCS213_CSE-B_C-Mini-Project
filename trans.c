@@ -27,12 +27,34 @@ int main(int argc, char *argv[])
     unsigned int choice; // user's choice
 
     // fopen opens the file; exits if file cannot be opened
-    if ((cfPtr = fopen("credit.dat", "rb+")) == NULL)
-    {
-        printf("%s: File could not be opened.\n", argv[0]);
-        exit(-1);
-    }
+    cfPtr = fopen("credit.dat", "wb+"); // overwrite and reset file
 
+if (cfPtr == NULL)
+{
+    printf("%s: File could not be opened.\n", argv[0]);
+    exit(-1);
+}
+
+// initialize 100 blank records
+struct clientData blank = {0, "", "", 0.0};
+
+for (int i = 0; i < 100; i++)
+{
+    fwrite(&blank, sizeof(struct clientData), 1, cfPtr);
+}
+
+// check if file is empty
+fseek(cfPtr, 0, SEEK_END);
+long size = ftell(cfPtr);
+
+if(size == 0)
+{
+    rewind(cfPtr);
+    for(int i = 0; i < 100; i++)
+    {
+        fwrite(&blank, sizeof(struct clientData), 1, cfPtr);
+    }
+}
     // enable user to specify action
     while ((choice = enterChoice()) != 7)
     {
@@ -91,7 +113,7 @@ void textFile(FILE *readPtr)
         fprintf(writePtr, "%-6s%-16s%-11s%10s\n", "Acct", "Last Name", "First Name", "Balance");
 
         // copy all records from random-access file into text file
-        while (!feof(readPtr))
+        while (fread(&client, sizeof(struct clientData), 1, readPtr) == 1)
         {
             result = fread(&client, sizeof(struct clientData), 1, readPtr);
 
@@ -136,13 +158,19 @@ void updateRecord(FILE *fPtr)
     else
     { // update record
         printf("%-6d%-16s%-11s%10.2f\n\n", client.acctNum, client.lastName, client.firstName, client.balance);
+        printf("Current Status : %s\n\n", getStatus(client.balance));
         // request transaction amount from user
         printf("%s", "Enter charge ( + ) or payment ( - ): ");
         scanf("%lf", &transaction);
         client.balance += transaction; // update record balance
 
         printf("%-6d%-16s%-11s%10.2f\n", client.acctNum, client.lastName, client.firstName, client.balance);
+        printf("Status         : %s\n", getStatus(client.balance));
 
+if(client.balance < 0)
+{
+    printf("⚠ Warning: Account is overdrawn!\n");
+}
         // move file pointer to correct record in file
         // move back by 1 record length
         fseek(fPtr, - (long) sizeof(struct clientData), SEEK_CUR);
@@ -230,13 +258,12 @@ void displayRecord(FILE *fPtr)
 
     rewind(fPtr); // move to beginning of file
 
-    printf("%-6s%-15s%-10s%10s\n","Acct","Last Name","First Name","Balance");
-
+   printf("%-6s %-15s %-12s %10s\n","Acct","Last Name","First Name","Balance");
     while(fread(&client,sizeof(struct clientData),1,fPtr))
     {
         if(client.acctNum != 0)
         {
-            printf("%-6d%-15s%-10s%10.2f\n",
+            printf("%-6d %-15s %-12s %10.2f\n",
                    client.acctNum,
                    client.lastName,
                    client.firstName,
@@ -273,7 +300,19 @@ void SearchAccount(FILE *fPtr)
         printf("Last Name      : %s\n",client.lastName);
         printf("First Name     : %s\n",client.firstName);
         printf("Balance        : %.2f\n",client.balance);
+        printf("Status         : %s\n", getStatus(client.balance));
     }
+}
+const char* getStatus(double balance)
+{
+    if(balance < 0)
+        return "OVERDRAWN";
+    else if(balance < 1000)
+        return "LOW";
+    else if(balance <= 10000)
+        return "NORMAL";
+    else
+        return "PREMIUM";
 }
 // enable user to input menu choice
 unsigned int enterChoice(void)
