@@ -3,6 +3,7 @@
 // be placed in the file, and deletes data previously in the file.
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h> 
 // clientData structure definition
 struct clientData
 {
@@ -11,7 +12,12 @@ struct clientData
     char firstName[10];   // account first name
     double balance;       // account balance
 };                        // end structure clientData
-
+struct transaction
+{
+    unsigned int acctNum;
+    double amount;
+    char type[10];
+};
 // prototypes
 unsigned int enterChoice(void);
 void textFile(FILE *readPtr);
@@ -20,6 +26,7 @@ void newRecord(FILE *fPtr);
 void deleteRecord(FILE *fPtr);
 void displayRecord(FILE *fptr);
 void SearchAccount(FILE *fPtr);
+void viewTransactions(void);
 
 int main(int argc, char *argv[])
 {
@@ -56,7 +63,7 @@ if(size == 0)
     }
 }
     // enable user to specify action
-    while ((choice = enterChoice()) != 7)
+    while ((choice = enterChoice()) != 8)
     {
         switch (choice)
         {
@@ -84,6 +91,9 @@ if(size == 0)
         case 6:
             SearchAccount(cfPtr);
             break;
+        case 7:
+        viewTransactions();
+        break;
         // display if user does not select valid choice
         default:
             puts("Incorrect choice");
@@ -163,6 +173,24 @@ void updateRecord(FILE *fPtr)
         printf("%s", "Enter charge ( + ) or payment ( - ): ");
         scanf("%lf", &transaction);
         client.balance += transaction; // update record balance
+
+        struct transaction t;
+
+        t.acctNum = client.acctNum;
+        t.amount = transaction;
+
+        if(transaction >= 0)
+            strcpy(t.type, "DEPOSIT");
+        else
+            strcpy(t.type, "WITHDRAW");
+
+        FILE *tPtr = fopen("transactions.dat", "ab");
+
+        if(tPtr != NULL)
+        {
+            fwrite(&t, sizeof(struct transaction), 1, tPtr);
+            fclose(tPtr);
+        }
 
         printf("%-6d%-16s%-11s%10.2f\n", client.acctNum, client.lastName, client.firstName, client.balance);
         printf("Status         : %s\n", getStatus(client.balance));
@@ -314,6 +342,27 @@ const char* getStatus(double balance)
     else
         return "PREMIUM";
 }
+void viewTransactions(void)
+{
+    FILE *tPtr = fopen("transactions.dat", "rb");
+    struct transaction t;
+
+    if(tPtr == NULL)
+    {
+        printf("No transaction history found.\n");
+        return;
+    }
+
+    printf("\nTransaction History:\n");
+
+    while(fread(&t, sizeof(struct transaction), 1, tPtr))
+    {
+        printf("Account: %d | Type: %s | Amount: %.2f\n",
+               t.acctNum, t.type, t.amount);
+    }
+
+    fclose(tPtr);
+}
 // enable user to input menu choice
 unsigned int enterChoice(void)
 {
@@ -327,8 +376,10 @@ unsigned int enterChoice(void)
                  "4 - delete an account\n"
                  "5 - display all accounts\n"
                  "6 - search for an account\n"
-                 "7 - end program\n? ");
-
+                 "7 - view transaction history\n"
+                 "8 - end program\n? ");
+     const char* getStatus(double balance)
+{
     scanf("%u", &menuChoice); // receive choice from user
     return menuChoice;
 } // end function enterChoice
