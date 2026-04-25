@@ -27,6 +27,7 @@ void deleteRecord(FILE *fPtr);
 void displayRecord(FILE *fptr);
 void SearchAccount(FILE *fPtr);
 void viewTransactions(void);
+const char* getStatus(double balance);
 
 int main(int argc, char *argv[])
 {
@@ -34,34 +35,45 @@ int main(int argc, char *argv[])
     unsigned int choice; // user's choice
 
     // fopen opens the file; exits if file cannot be opened
-    cfPtr = fopen("credit.dat", "wb+"); // overwrite and reset file
+ cfPtr = fopen("credit.dat", "rb+");
 
 if (cfPtr == NULL)
 {
-    printf("%s: File could not be opened.\n", argv[0]);
-    exit(-1);
-}
+    cfPtr = fopen("credit.dat", "wb+");
+
+    if (cfPtr == NULL)
+    {
+        printf("File could not be opened.\n");
+        exit(1);
+    }
+
+    struct clientData blank = {0, "", "", 0.0};
+    for (int i = 0; i < 100; i++)
+    {
+        fwrite(&blank, sizeof(struct clientData), 1, cfPtr);
+    }
+}    
 
 // initialize 100 blank records
-struct clientData blank = {0, "", "", 0.0};
+cfPtr = fopen("credit.dat", "rb+");
 
-for (int i = 0; i < 100; i++)
+if (cfPtr == NULL)
 {
-    fwrite(&blank, sizeof(struct clientData), 1, cfPtr);
-}
+    cfPtr = fopen("credit.dat", "wb+");
 
-// check if file is empty
-fseek(cfPtr, 0, SEEK_END);
-long size = ftell(cfPtr);
+    if (cfPtr == NULL)
+    {
+        printf("File could not be opened.\n");
+        exit(1);
+    }
 
-if(size == 0)
-{
-    rewind(cfPtr);
-    for(int i = 0; i < 100; i++)
+    struct clientData blank = {0, "", "", 0.0};
+    for (int i = 0; i < 100; i++)
     {
         fwrite(&blank, sizeof(struct clientData), 1, cfPtr);
     }
 }
+
     // enable user to specify action
     while ((choice = enterChoice()) != 8)
     {
@@ -107,38 +119,34 @@ if(size == 0)
 // create formatted text file for printing
 void textFile(FILE *readPtr)
 {
-    FILE *writePtr; // accounts.txt file pointer
-    int result;     // used to test whether fread read any bytes
-    // create clientData with default information
+    FILE *writePtr;
     struct clientData client = {0, "", "", 0.0};
 
-    // fopen opens the file; exits if file cannot be opened
     if ((writePtr = fopen("accounts.txt", "w")) == NULL)
     {
         puts("File could not be opened.");
-    } // end if
-    else
+        return;
+    }
+
+    rewind(readPtr);
+
+    fprintf(writePtr, "%-6s %-15s %-12s %10s\n",
+            "Acct", "Last Name", "First Name", "Balance");
+
+    while (fread(&client, sizeof(struct clientData), 1, readPtr) == 1)
     {
-        rewind(readPtr); // sets pointer to beginning of file
-        fprintf(writePtr, "%-6s%-16s%-11s%10s\n", "Acct", "Last Name", "First Name", "Balance");
-
-        // copy all records from random-access file into text file
-        while (fread(&client, sizeof(struct clientData), 1, readPtr) == 1)
+        if (client.acctNum != 0)
         {
-            result = fread(&client, sizeof(struct clientData), 1, readPtr);
+            fprintf(writePtr, "%-6d %-15s %-12s %10.2f\n",
+                    client.acctNum,
+                    client.lastName,
+                    client.firstName,
+                    client.balance);
+        }
+    }
 
-            // write single record to text file
-            if (result != 0 && client.acctNum != 0)
-            {
-                fprintf(writePtr, "%-6d%-16s%-11s%10.2f\n", client.acctNum, client.lastName, client.firstName,
-                        client.balance);
-            } // end if
-        }     // end while
-
-        fclose(writePtr); // fclose closes the file
-    }                     // end else
-} // end function textFile
-
+    fclose(writePtr);
+}
 // update balance in record
 void updateRecord(FILE *fPtr)
 {
@@ -167,7 +175,7 @@ void updateRecord(FILE *fPtr)
     }
     else
     { // update record
-        printf("%-6d%-16s%-11s%10.2f\n\n", client.acctNum, client.lastName, client.firstName, client.balance);
+        printf("%-6d%-15s%-12s%10.2f\n\n", client.acctNum, client.lastName, client.firstName, client.balance);
         printf("Current Status : %s\n\n", getStatus(client.balance));
         // request transaction amount from user
         printf("%s", "Enter charge ( + ) or payment ( - ): ");
@@ -192,7 +200,7 @@ void updateRecord(FILE *fPtr)
             fclose(tPtr);
         }
 
-        printf("%-6d%-16s%-11s%10.2f\n", client.acctNum, client.lastName, client.firstName, client.balance);
+        printf("%-6d%-15s%-12s%10.2f\n", client.acctNum, client.lastName, client.firstName, client.balance);
         printf("Status         : %s\n", getStatus(client.balance));
 
 if(client.balance < 0)
@@ -378,8 +386,7 @@ unsigned int enterChoice(void)
                  "6 - search for an account\n"
                  "7 - view transaction history\n"
                  "8 - end program\n? ");
-     const char* getStatus(double balance)
-{
+
     scanf("%u", &menuChoice); // receive choice from user
     return menuChoice;
 } // end function enterChoice
