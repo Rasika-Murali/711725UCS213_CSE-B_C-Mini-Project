@@ -27,6 +27,7 @@ void deleteRecord(FILE *fPtr);
 void displayRecord(FILE *fptr);
 void SearchAccount(FILE *fPtr);
 void viewTransactions(void);
+void transferMoney(FILE *fPtr);
 const char* getStatus(double balance);
 
 int main(int argc, char *argv[])
@@ -75,7 +76,7 @@ if (cfPtr == NULL)
 }
 
     // enable user to specify action
-    while ((choice = enterChoice()) != 8)
+    while ((choice = enterChoice()) != 9)
     {
         switch (choice)
         {
@@ -105,6 +106,9 @@ if (cfPtr == NULL)
             break;
         case 7:
         viewTransactions();
+        break;
+        case 8:
+        transferMoney(cfPtr);
         break;
         // display if user does not select valid choice
         default:
@@ -350,6 +354,7 @@ const char* getStatus(double balance)
     else
         return "PREMIUM";
 }
+
 void viewTransactions(void)
 {
     FILE *tPtr = fopen("transactions.dat", "rb");
@@ -371,6 +376,64 @@ void viewTransactions(void)
 
     fclose(tPtr);
 }
+void transferMoney(FILE *fPtr)
+{
+    unsigned int fromAcc, toAcc;
+    double amount;
+
+    struct clientData sender = {0,"","",0.0};
+    struct clientData receiver = {0,"","",0.0};
+
+    printf("Enter sender account number: ");
+    scanf("%u", &fromAcc);
+
+    printf("Enter receiver account number: ");
+    scanf("%u", &toAcc);
+
+    printf("Enter amount to transfer: ");
+    scanf("%lf", &amount);
+
+    // Validate account numbers
+    if(fromAcc < 1 || fromAcc > 100 || toAcc < 1 || toAcc > 100)
+    {
+        printf("Invalid account number.\n");
+        return;
+    }
+
+    // Read sender
+    fseek(fPtr, (fromAcc - 1) * sizeof(struct clientData), SEEK_SET);
+    fread(&sender, sizeof(struct clientData), 1, fPtr);
+
+    // Read receiver
+    fseek(fPtr, (toAcc - 1) * sizeof(struct clientData), SEEK_SET);
+    fread(&receiver, sizeof(struct clientData), 1, fPtr);
+
+    if(sender.acctNum == 0 || receiver.acctNum == 0)
+    {
+        printf("One or both accounts do not exist.\n");
+        return;
+    }
+
+    if(sender.balance < amount)
+    {
+        printf("Insufficient balance.\n");
+        return;
+    }
+
+    // Perform transfer
+    sender.balance -= amount;
+    receiver.balance += amount;
+
+    // Write sender back
+    fseek(fPtr, (fromAcc - 1) * sizeof(struct clientData), SEEK_SET);
+    fwrite(&sender, sizeof(struct clientData), 1, fPtr);
+
+    // Write receiver back
+    fseek(fPtr, (toAcc - 1) * sizeof(struct clientData), SEEK_SET);
+    fwrite(&receiver, sizeof(struct clientData), 1, fPtr);
+
+    printf("Transfer successful!\n");
+}
 // enable user to input menu choice
 unsigned int enterChoice(void)
 {
@@ -385,7 +448,8 @@ unsigned int enterChoice(void)
                  "5 - display all accounts\n"
                  "6 - search for an account\n"
                  "7 - view transaction history\n"
-                 "8 - end program\n? ");
+                 "8 - Money transfer\n"
+                 "9 - end program\n? ");
 
     scanf("%u", &menuChoice); // receive choice from user
     return menuChoice;
